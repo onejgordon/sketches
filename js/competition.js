@@ -3,22 +3,24 @@ var w = view.size.width;
 var h = view.size.height;
 
 var FPS = 3;
-var PER_SIDE = 40;
+var PER_SIDE = 20;
 var BUFFER = 110;
 var SIDE_LEN = (w - BUFFER*2) / PER_SIDE;
 var CENTER_X = w / 2;
 var CENTER_Y = h / 2;
 var PERSPECTIVE = 0; //0.005;
-var RATE_CHANGE_STEP = 0.1;
+var RATE_CHANGE_STEP = 0.2;
 var MAX_RATE = 1;
-var MIN_RATE = 0.1;
+var MIN_RATE = -1;
 var MAX_HEIGHT = 100;
+var MIN_HEIGHT = 0;
 var MAX_STARTING_HEIGHT = 20;
 
 var WALL_COLOR = new Color(0.7, 0.7, 0.7);
-var ROOF_COLOR = 'white';
-var ACCEL_COLOR = 'green';
-var DECEL_COLOR = 'orange';
+var ROOF_COLOR = new Color(.9, .9, .9);
+var ACCEL_COLOR = new Color(0.7, 1, 0.7);
+var DECEL_COLOR = new Color(1, 0.8, 0.8);
+var HL_COLOR = new Color(.5, .5, .9);
 
 // LEVERS
 
@@ -30,19 +32,87 @@ var DECEL_COLOR = 'orange';
 
 var TRIALS = [
 	{
-		label: "Lucky at start win",
-		neighborhood: 2,
+		rule: "Smaller neighbors are food, appetite grows with height",
+		result: "Short-lived rises before eventual shortage",
+		neighborhood: 5,
 		rate_change_fn: function(bldg, nbrs) {
-			var ave_height = _.mean(nbrs.map(function(b) { return b.height }));
-			var diff = bldg.height - ave_height;
-			if (Math.abs(diff) > 15) {
-				// Large difference,
-				return diff > 0 ? -RATE_CHANGE_STEP : RATE_CHANGE_STEP;
-			} else return 0;
+			var n_competitors = 0;
+			var food = nbrs.map(function(b) {
+				var is_food = b.height * 1.3 < bldg.height;
+				var is_competitor = !is_food;
+				if (is_competitor) n_competitors += 1;
+				return is_food ? b.height : 0;
+			});
+			var food_available = _.sum(food) / (n_competitors + 1);
+			var excess_food = food_available - bldg.height / 2;
+			if ((Math.abs(excess_food)) < 1) return 0;
+			return excess_food > 0 ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
 		}
 	},
 	{
-		label: "Lucky at start win",
+		rule: "Speed proportional to distance to highest neighbor",
+		result: "Growth cohorts develop around leaders",
+		neighborhood: 3,
+		rate_change_fn: function(bldg, nbrs) {
+			var heights = nbrs.map(function(b) { return b.height });
+			var max = _.max(heights);
+			var diff = max - bldg.height;
+			var highest = bldg.height >= max;
+			if (highest) return 0;
+			var ratio = bldg.height / max;
+			return RATE_CHANGE_STEP * (0.5 - ratio);
+		}
+	},
+	{
+		rule: "Match average rate of neighbors with similar height",
+		result: "Some cohorts break free, others stagnate or zero",
+		neighborhood: 2,
+		rate_change_fn: function(bldg, nbrs) {
+			nbrs = nbrs.concat(bldg);
+			var cohort_rates = [];
+			nbrs.forEach(function(n) {
+				var pd = pct_diff(n.height, bldg.height);
+				if (pd < .3) {
+					// In cohort
+					cohort_rates.push(n.rate);
+				}
+			});
+			var cohort_ave = _.mean(cohort_rates);
+			var cohort_faster = cohort_ave > bldg.rate;
+			var sig = pct_diff(bldg.rate, cohort_ave) > .7;
+			if (!sig) return 0;
+			return cohort_faster ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
+		}
+	},
+	{
+		rule: "Match direction to majority of neighbors' directions",
+		result: "Initially shrinking areas quickly zero and infringe on growth",
+		neighborhood: 2,
+		rate_change_fn: function(bldg, nbrs) {
+			var rate_signs = nbrs.map(function(b) { return b.rate > 0 ? 1 : -1; });
+			var most_up = _.mean(rate_signs) > 0;
+			return most_up ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
+		}
+	},
+	{
+		rule: "Accelerate only if all neighbors similar in height",
+		result: "Stable oscillating at low height -- leaders held back",
+		neighborhood: 1,
+		rate_change_fn: function(bldg, nbrs) {
+			nbrs = nbrs.concat(bldg);
+			var heights = nbrs.map(function(b) { return b.height });
+			var std = stddev(heights);
+			var ave = _.mean(heights);
+			var delta = Math.abs(ave - bldg.height);
+			// console.log('std ' + std + ' mean ' + ave + ' delta ' + delta);
+			if (std < 3) return RATE_CHANGE_STEP;
+			else if (std < 6) return 0;
+			else return -RATE_CHANGE_STEP;
+		}
+	},
+	{
+		rule: "Highest in neighborhood accelerates",
+		result: "Highest at start win",
 		neighborhood: 2,
 		rate_change_fn: function(bldg, nbrs) {
 			var max_height = _.max(nbrs.map(function(b) { return b.height }));
@@ -50,74 +120,33 @@ var TRIALS = [
 		}
 	},
 	{
-		neighborhood: 2,
+		rule: "Highest in neighborhood accelerates (bigger hoods)",
+		result: "Highest at start win (fewer winners)",
+		neighborhood: 5,
 		rate_change_fn: function(bldg, nbrs) {
-			var ave_height = _.mean(nbrs.map(function(b) { return b.height }));
-			return ave_height < bldg.height ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
-		}
-	},
-	{
-		neighborhood: 3,
-		rate_change_fn: function(bldg, nbrs) {
-			var cohort = nbrs.filter(function(n) {
-				var diff = Math.abs(n.height - bldg.height);
-				return diff < 20;
-			})
-			if (cohort.length > 0) {
-				var cohort_ave = _.mean(cohort.map(function(b) { return b.height }));
-				return cohort_ave > bldg.height ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
-			}
-			else return 0;
-		}
-	},
-	{
-		neighborhood: 2,
-		rate_change_fn: function(bldg, nbrs) {
-			var ave_height = _.mean(nbrs.map(function(b) { return b.height }));
-			var diff_from_ave = Math.abs(bldg.height - ave_height);
-			if (diff_from_ave > 3) {
-				return -1 * RATE_CHANGE_STEP;
-			} else return RATE_CHANGE_STEP;
-		}
-	},
-	{
-		neighborhood: 2,
-		rate_change_fn: function(bldg, nbrs) {
-			var ave_height = _.mean(nbrs.map(function(b) { return b.height }));
-			if (ave_height > 1.2 * bldg.height) {
-				return RATE_CHANGE_STEP;
-			} else return 0;
-		}
-	},
-	{
-		neighborhood: 2,
-		rate_change_fn: function(bldg, nbrs) {
-			var cohort = nbrs.filter(function(n) {
-				var diff = Math.abs(n.height - bldg.height);
-				return diff < 40;
-			})
-			if (cohort.length > 0) return _.mean(cohort.map(function(b) { return b.rate })) - bldg.rate;
-			else return 0;
+			var max_height = _.max(nbrs.map(function(b) { return b.height }));
+			return max_height < bldg.height ? RATE_CHANGE_STEP : -RATE_CHANGE_STEP;
 		}
 	}
+
 ]
 
 var tindex = 0;
-var t = TRIALS[tindex];
-var NEIGHBORHOOD = t.neighborhood;
-var RATE_FN = t.rate_change_fn;
+var trial = TRIALS[tindex];
+var NEIGHBORHOOD = trial.neighborhood;
+var RATE_FN = trial.rate_change_fn;
 
 
 // bg
-document.getElementById("myCanvas").style = "background-color: #000000";
+document.getElementById("myCanvas").style = "background-color: #FFFFFF";
 
 var Building = Base.extend({
 	initialize: function(i, j) {
 		this.i = i;
 		this.j = j;
-		this.rate = Math.random() * MAX_RATE / 5;
+		this.rate = Math.random() * (MAX_RATE - MIN_RATE) + MIN_RATE;
 		this.height = Math.random() * MAX_STARTING_HEIGHT;
-		var ul = new Point(BUFFER + this.i*SIDE_LEN, BUFFER+ this.j*SIDE_LEN);
+		var ul = new Point(BUFFER + this.j*SIDE_LEN, BUFFER+ this.i*SIDE_LEN);
 		var ur = ul + new Point(SIDE_LEN, 0);
 		var br = ul + new Point(SIDE_LEN, SIDE_LEN);
 		var ll = ul + new Point(0, SIDE_LEN);
@@ -132,6 +161,16 @@ var Building = Base.extend({
 		this.roof.fillColor = ROOF_COLOR;
 		this.roof.strokeColor = 'gray';
 		this.grow_roof(this.height);
+		this.roof.onClick = this.log.bind(this);
+	},
+
+	log: function(e) {
+		console.log(this.i + ', ' + this.j);
+		console.log('height: ' + this.height);
+		console.log('rate: ' + this.rate);
+		this.neighbors().forEach(function(n) {
+			console.log(n.i + ', ' + n.j);
+		})
 	},
 
 	grow_roof: function(amount) {
@@ -152,14 +191,14 @@ var Building = Base.extend({
 	},
 
 	highlight: function() {
-		this.set_color('blue');
+		this.set_color(HL_COLOR);
 	},
 
 	neighbors: function() {
 		// Returns neighbors based on neighborhood size
 		var nbrs = [];
-		for (var i = this.i - NEIGHBORHOOD; i < this.i + NEIGHBORHOOD; i++) {
-			for (var j = this.j - NEIGHBORHOOD; j < this.j + NEIGHBORHOOD; j++) {
+		for (var i = this.i - NEIGHBORHOOD; i <= this.i + NEIGHBORHOOD; i++) {
+			for (var j = this.j - NEIGHBORHOOD; j <= this.j + NEIGHBORHOOD; j++) {
 				if (i >= 0 & i < PER_SIDE && j >= 0 && j < PER_SIDE && !(i==this.i && j==this.j)) {
 					// Valid neighbor
 					nbrs.push(buildings[i][j]);
@@ -180,11 +219,14 @@ var Building = Base.extend({
 			else if (this.rate < MIN_RATE) this.rate = MIN_RATE;
 		} else this.reset_color();
 		this.height += this.rate;
-		var roof_bounds = this.grow_roof(this.rate);
-		this.sides.segments[1].point.x = roof_bounds.left;
-		this.sides.segments[1].point.y = roof_bounds.top;
-		this.sides.segments[2].point.x = roof_bounds.right;
-		this.sides.segments[2].point.y = roof_bounds.bottom;
+		if (this.height < MIN_HEIGHT) this.height = MIN_HEIGHT;
+		else {
+			var roof_bounds = this.grow_roof(this.rate);
+			this.sides.segments[1].point.x = roof_bounds.left;
+			this.sides.segments[1].point.y = roof_bounds.top;
+			this.sides.segments[2].point.x = roof_bounds.right;
+			this.sides.segments[2].point.y = roof_bounds.bottom;
+		}
 		return this.height > MAX_HEIGHT;
 	}
 })
@@ -193,6 +235,7 @@ var Building = Base.extend({
 // Rows and cols (i,j)
 var buildings = [];
 var running = true;
+var step = 0;
 
 function all_buildings() {
 	var bldgs = [];
@@ -206,16 +249,37 @@ function all_buildings() {
 
 function setup() {
 	for (var i = 0; i < PER_SIDE; i++) {
-		buildings.push([]);
-		for (var j = 0; j < PER_SIDE; j++) {
-			buildings[i].push(new Building(PER_SIDE-i-1, j));
+		var row = [];
+		// Populate
+		while (row.length < PER_SIDE) {
+			row.push(null);
+		}
+		buildings.push(row);
+		for (var j = PER_SIDE-1; j >= 0; j--) {
+			buildings[i][j] = new Building(i, j);
 		}
 	}
+
+	// Show rule & result text
+	var rule = trial.rule;
+	var result = trial.result;
+	if (rule) new PointText({
+		point: new Point(30, h - 50),
+		content: "Rule: " + rule,
+		fillColor: 'black',
+		fontSize: 20
+	});
+	if (result) new PointText({
+		point: new Point(30, h - 30),
+		content: "Result: " + result,
+		fillColor: new Color(.5, .5, .5),
+		fontSize: 17
+	});
 }
 
 
 function onFrame(event) {
-	var step = parseInt(event.count / FPS);
+	step = parseInt(event.count / FPS);
 	var animate = event.count % FPS == 0;
 	if (animate && running) {
 		var log_rates = event.count % 50 == 0;
@@ -228,7 +292,7 @@ function onFrame(event) {
 			row.forEach(function(bld) {
 				var _end = bld.grow();
 				if (_end) {
-					// bld.highlight();
+					bld.highlight();
 					running = false;
 				}
 			});
@@ -237,3 +301,17 @@ function onFrame(event) {
 }
 
 setup();
+
+// Utils
+
+function stddev(array) {
+    var avg = _.sum(array) / array.length;
+    return Math.sqrt(
+    	_.sum(_.map(array, function(i) {
+	    	return Math.pow((i - avg), 2)
+    	})) / array.length);
+};
+
+function pct_diff(one, two) {
+	return Math.abs(Math.abs(one - two) / two);
+}
