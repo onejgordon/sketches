@@ -4,7 +4,7 @@ var h = view.size.height;
 
 var THETA_MAX = 180;
 var PHI_MAX = 360;
-var AVE_R = 300;
+var AVE_R = 280;
 var AVE_SIZE = 10;
 var MAX_VELOCITY = .2;
 var FPS = 5;
@@ -36,16 +36,16 @@ var Orb = Base.extend({
 		this.r = r;
 		this.size = size;
 		this.opacity = 1;
-		this.coords = this.coords();
-		this.path = new Path.Circle(new Point(coords.x, coords.y), size);
+		this.coords = this.get_coords();
+		this.path = new Path.Circle(new Point(this.coords.x, this.coords.y), size);
 		var blueness = 0.8 + Math.random() * .2;
 		this.path.fillColor = new Color(blueness, blueness, 1);
-		this.stem = new Path.Line(center, new Point(coords.x, coords.y));
+		this.stem = new Path.Line(center, new Point(this.coords.x, this.coords.y));
 		this.stem.strokeColor = 'white';
 		this.stem.strokeWidth = 2;
 	},
 
-	coords: function() {
+	get_coords: function() {
 		var x = this.r * Math.sin(this.theta) * Math.cos(this.phi) + CENTER_X;
 		var y = this.r * Math.sin(this.theta) * Math.sin(this.phi) + CENTER_Y;
 		var z = this.r * Math.cos(this.theta);
@@ -71,13 +71,13 @@ var Orb = Base.extend({
 	},
 
 	update: function() {
-		this.coords = this.coords();
-		this.opacity = (coords.z + AVE_R) / (2*AVE_R);
-		this.path.position.x = coords.x;
-		this.path.position.y = coords.y;
+		this.coords = this.get_coords();
+		this.opacity = (this.coords.z + AVE_R) / (2*AVE_R);
+		this.path.position.x = this.coords.x;
+		this.path.position.y = this.coords.y;
 		this.path.opacity = this.opacity;
-		this.stem.segments[1].point.x = coords.x;
-		this.stem.segments[1].point.y = coords.y;
+		this.stem.segments[1].point.x = this.coords.x;
+		this.stem.segments[1].point.y = this.coords.y;
 	}
 })
 

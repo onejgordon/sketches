@@ -7,12 +7,11 @@ All use [paper.js](paperjs.org) currently.
 
 ## Setup ##
 
-```
-npm install
-npm start
-```
+Change the src defined in sketch.html:
 
-Redefine the SKETCH variable in gulpfile.js to any JS file in the js/ directory.
+```
+<script type="text/paperscript" src="js/SKETCHFILE.js" canvas="myCanvas">
+```
 
 Then open `sketch.html` in Chrome.
 
