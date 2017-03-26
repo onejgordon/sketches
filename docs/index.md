@@ -5,4 +5,4 @@ layout: default
 
 # Recent Sketches
 
-* [Synapse Timing]({{ site.github.repository_url }}/synapse_timing.html)
+* [Synapse Timing](/sketches/synapse_timing.html)
