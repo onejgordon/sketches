@@ -25,7 +25,7 @@ var SOURCE_COLOR = 'red';
 var B_WIDTH = 90;
 var B_HEIGHT = 30;
 var B_PADDING = 30;
-var B_TOP = 70;
+var B_TOP = 10;
 var B_LEFT = 20;
 
 var scenario_index = 0;
@@ -44,7 +44,7 @@ function start_scenario(index) {
 		return new SourceCell(sc[0], sc[1], sc[2], sc[3]);
 	});
 	target.full_reset();
-	title.content = scenario.title;
+	title.content = (index+1) + ') ' + scenario.title;
 }
 
 var Button = Base.extend({
@@ -81,8 +81,9 @@ var LearnRadius = Base.extend({
 		// TOOD: Find *nearest*
 		for (var i = 0; i < sources.length; i++) {
 			var src = sources[i];
-			if (src == this.source_cell || src.spike.position.x != middle_x) continue;
-			if (src.spike != null && this.circle.contains(src.spike.position)) {
+			var spike = src.spike;
+			if (src == this.source_cell || spike == null || spike.position.x != middle_x) continue;
+			if (this.circle.contains(src.spike.position)) {
 				var dir = src.spike.position - this.circle.position;
 				var width_offset = new Point(LEARN_ARROW_WIDTH, 0);
 				this.arrow = new Path([
@@ -329,9 +330,9 @@ SCENARIOS.forEach(function(sc, i) {
 
 // Initialize title
 var title = new PointText({
-	point: new Point(30, 30),
-	content: 'Click on a box below to choose a scenario',
-	fontSize: 30,
+	point: new Point(30, 90),
+	content: 'Click on a box above to choose a scenario',
+	fontSize: 27,
 	fillColor: 'black'
 });
 
