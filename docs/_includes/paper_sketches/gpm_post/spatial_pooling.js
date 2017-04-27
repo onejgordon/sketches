@@ -16,7 +16,7 @@ var CL_INACTIVE = new Color(.2, .2, .2);
 var CL_ACTIVE = new Color(0, .7, 0);
 var CL_ACTIVE_INHIBIT = new Color(.5, 0, 0);
 var REGION_GAP = 100;
-var FPS = 90; // Frames per step
+var FPS = 30; // Frames per step
 var N_DENDRITES = 2;
 var ACTIVATION_THRESHOLD = 3;
 var INPUT_FLOOR = h * .3;
@@ -34,11 +34,7 @@ var markers = [];
 var img;
 var is_setup = false;
 var raster_tl;
-var label;
-
-$.getScript("js/jslib/lodash.min.js", function(){
-   setup();
-});
+var label, result_label;
 
 var ImageMarker = Base.extend({
 	// Read average brightness at a location on an image
@@ -54,12 +50,17 @@ var ImageMarker = Base.extend({
 			center: center,
 			radius: 5
 		});
-		this.path = outer.subtract(inner);
+		var ring = outer.subtract(inner);
+		var top = INPUT_FLOOR + CELL_HEIGHT/2;
+		var line = new Path.Line(new Point(center.x, center.y-8), new Point(center.x, top));
+		line.strokeWidth = 2;
+		this.path = new Group([ring, line]);
 		this.path.fillColor = 'white';
+		this.path.strokeColor = 'white';
 	},
 
 	average_brightness: function() {
-		var point = this.path.position - raster_tl;
+		var point = this.center - raster_tl;
 		var brightnesses = [];
 		var rad = 2;
 		brightnesses.push(raster.getPixel(point + new Point(rad, 0)).brightness);
@@ -81,6 +82,7 @@ var ImageMarker = Base.extend({
 			color = excite ? CL_ACTIVE : CL_ACTIVE_INHIBIT;
 		}
 		this.path.fillColor = color;
+		this.path.strokeColor = color;
 	}
 
 })
@@ -235,6 +237,17 @@ function setup() {
 	label.justification = 'center';
 	label.bringToFront();
 	is_setup = true;
+
+	// Add activation label
+	result_label = new PointText({
+		point: new Point(middle_x + 20, 84),
+		content: '',
+		fillColor: 'gray',
+		fontSize: 15
+	});
+	result_label.justification = 'left';
+	result_label.bringToFront();
+
 	console.log('setup complete');
 }
 
@@ -250,7 +263,7 @@ function calculate_inputs() {
 
 function image_file(i) {
 	var file = "i" + i + ".jpg";
-	return "sketches/gpm_post/images/" + file;
+	return "/assets/pgm_post/" + file;
 }
 
 function onFrame(event) {
@@ -273,10 +286,15 @@ function onFrame(event) {
 					}
 				});
 				// Update label
-				label.content = regions[1].cells[0].activation;
+				var top_activation = regions[1].cells[0].activation;
+				var active = top_activation >= 3;
+				label.content = top_activation;
+				result_label.content = active ? "Top bright" : "Inactive";
+				result_label.fillColor = active ? CL_ACTIVE : CL_INACTIVE;
 			}
 		}
 	}
 }
 
+setup();
 

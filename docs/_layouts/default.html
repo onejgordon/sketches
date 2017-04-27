@@ -10,7 +10,14 @@
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-	{% if page.js_sketches %}
+	{% if page.js_libs %}
+  {% for js in page.js_libs %}
+    <script type="text/javascript">
+    {% include {{ js }} %}
+    </script>
+  {% endfor %}
+  {% endif %}
+  {% if page.js_sketches %}
 		<script
 		  src="https://code.jquery.com/jquery-3.1.1.min.js"
 		  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
