@@ -5,4 +5,4 @@ layout: default
 
 # Recent Sketches
 
-* [Synapse Timing](synapse_timing.html)
+* [Plenty of Space](plenty_of_space.html)

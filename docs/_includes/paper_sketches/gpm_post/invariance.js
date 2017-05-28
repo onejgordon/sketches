@@ -33,6 +33,7 @@ var visible_object = null;
 var regions = [];
 var objects = [];
 var probabilities = [];
+var arrow;
 
 function shuffle(_probabilities) {
 	var rnd = Math.random();
@@ -56,7 +57,7 @@ function choose(list) {
 
 var SceneObject = Base.extend({
 	initialize: function(opts) {
-		console.log("Adding " + opts.label);
+		// console.log("Adding " + opts.label);
 		this.label = opts.label;
 		this.color = opts.color;
 		this.probability = opts.probability;
@@ -70,7 +71,7 @@ var SceneObject = Base.extend({
 
 		this.label_text = new PointText({
 			point: new Point(LABEL_X, 0),
-			content: this.label,
+			content: this.label + ':',
 			fontWeight: 'bold',
 			fontSize: LABEL_SIZE,
 			fillColor: this.color
@@ -98,11 +99,17 @@ var SceneObject = Base.extend({
 				input: input,
 				text: text
 			});
-			console.log(fl + " " + input);
+			// console.log(fl + " " + input);
 			label_cursor_x += LABEL_COL_WIDTH;
 			this.label_group.children.push(text);
+			if (opts.index == 1) {
+				var div_y = 15;
+				var divider = new Path.Line(new Point(30, div_y), new Point(LABEL_COL_WIDTH * 4, div_y));
+				divider.strokeColor = '#aaa';
+				this.label_group.children.push(divider);
+			}
 		}, this);
-		this.label_group.position.y = h - opts.index * 30 - 20;
+		this.label_group.position.y = h - opts.index * 50 - 20;
 	},
 
 	choose_next_state: function(visible) {
@@ -165,7 +172,6 @@ var Cell = Base.extend({
 	},
 
 	update: function(step) {
-		console.log(this.active_dendrites);
 		var color = this.active ? CL_ACTIVE : CL_INACTIVE;
 		this.path.fillColor = color;
 		this.sources.forEach(function(src, idx) {
@@ -192,7 +198,7 @@ var Cell = Base.extend({
 			// Choose sources as per affinity in region below
 			this.sources = object.affinity[ri-2];
 		}
-		console.log("Sources for cell " + this.index + " in region " + ri + ": " + this.sources);
+		// console.log("Sources for cell " + this.index + " in region " + ri + ": " + this.sources);
 		var x = this.path.bounds.x;
 		var y = this.path.bounds.y + this.path.bounds.size.height;
 		var ul = new Point(x, y + 2);
@@ -256,15 +262,15 @@ function setup() {
 		new SceneObject({
 			label: "Dog",
 			feature_labels: ["Nose", "Ears", "Wagging Tail"],
-			probability: 0.7,
-			color: 'brown',
+			probability: 0.5,
+			color: '#D59720',
 			index: 0,
 			affinity: [[2, 6, 7, 8], [1]]
 		}),
 		new SceneObject({
 			label: "Tree",
 			feature_labels: ["Leaves", "Shade", "Green"],
-			probability: 0.3,
+			probability: 0.5,
 			color: 'green',
 			index: 1,
 			affinity: [[1, 3, 5, 9], [0]]
@@ -272,6 +278,10 @@ function setup() {
 	];
 
 	visible_object = 0; // Start with first
+
+	console.log('creating arrow')
+	arrow = new Path.Circle(new Point(10,0), 5);
+	arrow.fillColor = 'red';
 
 	// Override cells in R2 and R3 to respond to each
 	// each objects features as per affinity prop of objects
@@ -315,7 +325,8 @@ function generate_inputs(count, n) {
 	var switch_objects = count % SWITCH_STEPS == 0;
 	if (switch_objects) {
 		// Switch objects
-		visible_object = shuffle(probabilities);
+		visible_object = visible_object == 1 ? 0 : 1; //shuffle(probabilities);
+		arrow.position.y = objects[visible_object].label_group.position.y - 5;
 	}
 	for (var i = 0; i < objects.length; i++) {
 		var o = objects[i];
@@ -324,7 +335,7 @@ function generate_inputs(count, n) {
 		if (_inputs) inputs = _inputs;
 		o.update();
 	}
-	console.log(count)
+	// console.log(count)
 	return inputs;
 }
 
