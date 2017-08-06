@@ -1,7 +1,7 @@
 ---
 title: Synapse Timing
 layout: default
-js_sketches:
+paper_sketches:
      - paper_sketches/synapse_timing.js
 ---
 

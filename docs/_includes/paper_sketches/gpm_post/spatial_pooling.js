@@ -135,7 +135,7 @@ var Cell = Base.extend({
 		this.path.fillColor = color;
 		this.sources.forEach(function(src, idx) {
 			var active = this.active_dendrites.indexOf(src) > -1;
-			this.dendrites[idx].opacity = active ? 1 : 0;
+			this.dendrites[idx].opacity = active ? 1 : 0.2;
 		}, this);
 	}
 
@@ -198,7 +198,7 @@ function setup() {
 					var dest = input_region.cells[src];
 					var to = dest.path.position + new Point(0, -1 * DENDRITE_BUFFER);
 					var line = new Path.Line(from, to);
-					line.strokeColor = CL_INACTIVE;
+					line.strokeColor = dest.excitatory ? CL_ACTIVE : CL_ACTIVE_INHIBIT;
 					line.opacity = 0;
 					c.dendrites.push(line);
 				}, this);

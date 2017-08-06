@@ -1,8 +1,8 @@
 ---
-title: Plenty of Space
+title: Winks
 layout: default
 paper_sketches:
-     - paper_sketches/plenty_of_space.js
+     - paper_sketches/winks.js
 js_libs:
      - jslib/lodash.min.js
 ---

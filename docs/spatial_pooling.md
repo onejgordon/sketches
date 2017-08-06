@@ -1,8 +1,8 @@
 ---
-title: Plenty of Space
+title: Spatial Pooling
 layout: default
 paper_sketches:
-     - paper_sketches/plenty_of_space.js
+     - paper_sketches/gpm_post/spatial_pooling.js
 js_libs:
      - jslib/lodash.min.js
 ---

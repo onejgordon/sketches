@@ -1,7 +1,7 @@
 ---
 title: Invariance
 layout: default
-js_sketches:
+paper_sketches:
      - paper_sketches/gpm_post/invariance.js
 js_libs:
      - jslib/lodash.min.js

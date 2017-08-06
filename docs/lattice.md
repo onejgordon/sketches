@@ -1,10 +1,8 @@
 ---
-title: Plenty of Space
+title: Lattice
 layout: default
 paper_sketches:
-     - paper_sketches/plenty_of_space.js
-js_libs:
-     - jslib/lodash.min.js
+     - paper_sketches/lattice.js
 ---
 
 
