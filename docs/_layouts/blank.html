@@ -48,6 +48,30 @@
         </script>
     {% endfor %}
   {% endif %}
+  {% if page.cyto_sketches %}
+  <script src="{{ '/assets/js/cytoscape.min.js' | relative_url }}"></script>
+    <style>
+      html, body { 
+        width: 100%; 
+        height: 100%; 
+        margin: 0; 
+        border: 0;
+        overflow: hidden; /*  Disable scrollbars */
+        display: block;  /* No floating content on sides */ 
+      }
+      div#cy { 
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    {% for js in page.cyto_sketches %}
+        <script type="text/javascript">
+        {% include {{ js }} %}
+        </script>
+    {% endfor %}
+  {% endif %}  
 
   </head>
   <body>
