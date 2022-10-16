@@ -26,6 +26,7 @@
     "browserify": "^13.3.0",
     "browserify-resolutions": "^1.0.6",
     "browserify-shim": "^3.8.10",
+    "ccapture.js": "^1.0.7",
     "gulp": "^3.8.10",
     "gulp-hash-src": "^0.1.6",
     "gulp-html-replace": "^1.4.3",

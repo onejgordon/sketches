@@ -74,7 +74,7 @@
   {% endif %}  
 
   </head>
-  <body>
+  <body {% if page.three_sketches %}onLoad="runThree()"{% endif %}>
 
   {{ content }}
 

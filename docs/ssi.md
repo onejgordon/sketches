@@ -6,5 +6,5 @@ cyto_sketches:
 
 ---
 
-
+<h1 id="caption">Press right to step into sequence</h1>
 <div id="cy"></div>
